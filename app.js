@@ -291,7 +291,14 @@ function renderActivities() {
     deleteBtn.textContent = '🗑️ 삭제';
     deleteBtn.onclick = () => deleteActivity(activity.id);
 
+    const matchBtn = document.createElement('button');
+    matchBtn.className = 'btn-secondary';
+    matchBtn.textContent = '⚔️ 매칭';
+    matchBtn.style.fontSize = '12px';
+    matchBtn.onclick = () => matchActivityParticipants(activity);
+
     actions.appendChild(editBtn);
+    actions.appendChild(matchBtn);
     actions.appendChild(deleteBtn);
 
     card.appendChild(title);
@@ -615,6 +622,191 @@ function runSelfCheck() {
 }
 
 // ==================== 매칭 (조건부) ====================
+
+// 활동의 참여자로 매칭
+function matchActivityParticipants(activity) {
+  const participants = activity.participantIds
+    .map(id => members.find(m => m.id === id))
+    .filter(m => m); // null 제거
+
+  if (participants.length < 2) {
+    alert('매칭을 위해 참여자가 2명 이상 필요합니다.');
+    return;
+  }
+
+  // 참여자 수에 따라 선택
+  if (participants.length === 2) {
+    // 1vs1 강제
+    matchActivityWith1vs1(participants, activity);
+  } else if (participants.length === 3) {
+    alert('3명은 1vs1 매칭만 가능합니다. (2명 선택)');
+    const shuffled = [...participants].sort(() => Math.random() - 0.5);
+    matchActivityWith1vs1([shuffled[0], shuffled[1]], activity);
+  } else {
+    // 2vs2, 3vs3 등 선택
+    showMatchingOptions(participants, activity);
+  }
+}
+
+// 활동 참여자로 1vs1 매칭
+function matchActivityWith1vs1(participants, activity) {
+  if (participants.length < 2) {
+    alert('1vs1 매칭을 위해 참여자가 2명 이상 필요합니다.');
+    return;
+  }
+
+  const shuffled = [...participants].sort(() => Math.random() - 0.5);
+  const team1 = shuffled[0];
+  const team2 = shuffled[1];
+
+  displayActivityMatchResult(`
+    <div class="matching-team">
+      <div class="team-box">
+        <div class="team-title">${team1.name}</div>
+        <div class="team-member">${team1.skillLevel}</div>
+      </div>
+      <div class="vs-text">VS</div>
+      <div class="team-box">
+        <div class="team-title">${team2.name}</div>
+        <div class="team-member">${team2.skillLevel}</div>
+      </div>
+    </div>
+  `, activity.title);
+}
+
+// 활동 참여자로 2vs2 매칭
+function matchActivityWith2vs2(participants, activity) {
+  if (participants.length < 4) {
+    alert('2vs2 매칭을 위해 참여자가 4명 이상 필요합니다.');
+    return;
+  }
+
+  const skillScore = { '상': 3, '중': 2, '하': 1 };
+  let bestCombination = null;
+  let bestDiff = Infinity;
+
+  for (let i = 0; i < 200; i++) {
+    const shuffled = [...participants].sort(() => Math.random() - 0.5);
+    const four = shuffled.slice(0, 4);
+
+    const team1 = [four[0], four[3]];
+    const team2 = [four[1], four[2]];
+
+    const team1Score = team1.reduce((sum, m) => sum + skillScore[m.skillLevel], 0);
+    const team2Score = team2.reduce((sum, m) => sum + skillScore[m.skillLevel], 0);
+    const diff = Math.abs(team1Score - team2Score);
+
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestCombination = { team1, team2, team1Score, team2Score };
+      if (diff === 0) break;
+    }
+  }
+
+  const { team1, team2, team1Score, team2Score } = bestCombination;
+
+  displayActivityMatchResult(`
+    <div class="matching-team">
+      <div class="team-box">
+        <div class="team-title">팀 1</div>
+        ${team1.map(m => `<div class="team-member">${m.name} (${m.skillLevel})</div>`).join('')}
+        <div class="team-score">점수: ${team1Score}</div>
+      </div>
+      <div class="vs-text">VS</div>
+      <div class="team-box">
+        <div class="team-title">팀 2</div>
+        ${team2.map(m => `<div class="team-member">${m.name} (${m.skillLevel})</div>`).join('')}
+        <div class="team-score">점수: ${team2Score}</div>
+      </div>
+    </div>
+  `, activity.title);
+}
+
+// 매칭 옵션 선택 대화
+function showMatchingOptions(participants, activity) {
+  const options = [];
+
+  if (participants.length >= 2) options.push('1vs1');
+  if (participants.length >= 4) options.push('2vs2');
+  if (participants.length >= 6) options.push('3vs3');
+
+  let choice = prompt(`${activity.title} 활동의 참여자(${participants.length}명)로 매칭을 진행합니다.\n선택: ${options.join(' / ')}`);
+
+  if (choice === '1vs1') {
+    matchActivityWith1vs1(participants, activity);
+  } else if (choice === '2vs2') {
+    matchActivityWith2vs2(participants, activity);
+  } else if (choice === '3vs3') {
+    matchActivityWith3vs3(participants, activity);
+  }
+}
+
+// 활동 참여자로 3vs3 매칭
+function matchActivityWith3vs3(participants, activity) {
+  if (participants.length < 6) {
+    alert('3vs3 매칭을 위해 참여자가 6명 이상 필요합니다.');
+    return;
+  }
+
+  const skillScore = { '상': 3, '중': 2, '하': 1 };
+  let bestCombination = null;
+  let bestDiff = Infinity;
+
+  for (let i = 0; i < 200; i++) {
+    const shuffled = [...participants].sort(() => Math.random() - 0.5);
+    const six = shuffled.slice(0, 6);
+
+    // 팀1: 1번, 4번 / 팀2: 2번, 5번 / 팀3: 3번, 6번
+    // 더 나은 균형을 위해: 팀1: 1,6 / 팀2: 2,5 / 팀3: 3,4
+    const team1 = [six[0], six[5]];
+    const team2 = [six[1], six[4]];
+    const team3 = [six[2], six[3]];
+
+    const team1Score = team1.reduce((sum, m) => sum + skillScore[m.skillLevel], 0);
+    const team2Score = team2.reduce((sum, m) => sum + skillScore[m.skillLevel], 0);
+    const team3Score = team3.reduce((sum, m) => sum + skillScore[m.skillLevel], 0);
+
+    const maxDiff = Math.max(
+      Math.abs(team1Score - team2Score),
+      Math.abs(team2Score - team3Score),
+      Math.abs(team1Score - team3Score)
+    );
+
+    if (maxDiff < bestDiff) {
+      bestDiff = maxDiff;
+      bestCombination = { team1, team2, team3, team1Score, team2Score, team3Score };
+      if (maxDiff === 0) break;
+    }
+  }
+
+  const { team1, team2, team3, team1Score, team2Score, team3Score } = bestCombination;
+
+  displayActivityMatchResult(`
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+      <div class="team-box">
+        <div class="team-title">팀 1</div>
+        ${team1.map(m => `<div class="team-member">${m.name} (${m.skillLevel})</div>`).join('')}
+        <div class="team-score">점수: ${team1Score}</div>
+      </div>
+      <div class="team-box">
+        <div class="team-title">팀 2</div>
+        ${team2.map(m => `<div class="team-member">${m.name} (${m.skillLevel})</div>`).join('')}
+        <div class="team-score">점수: ${team2Score}</div>
+      </div>
+      <div class="team-box">
+        <div class="team-title">팀 3</div>
+        ${team3.map(m => `<div class="team-member">${m.name} (${m.skillLevel})</div>`).join('')}
+        <div class="team-score">점수: ${team3Score}</div>
+      </div>
+    </div>
+  `, activity.title);
+}
+
+// 활동 매칭 결과 표시
+function displayActivityMatchResult(html, activityTitle) {
+  alert(`[${activityTitle}] 매칭 결과:\n\n` + html.replace(/<[^>]*>/g, '').substring(0, 200));
+  // 더 나은 표시를 위해 별도 영역에 표시 가능
+}
 
 // 1vs1 매칭
 function match1vs1() {
