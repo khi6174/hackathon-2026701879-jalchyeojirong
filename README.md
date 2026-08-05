@@ -8,7 +8,7 @@
 | **팀이름** | 잘쳤지롱 |
 | **팀원** | 김용우 (1인 팀) |
 | **GitHub 저장소** | https://github.com/khi6174/hackathon-2026701879-jalchyeojirong |
-| **배포 링크 (Vercel)** | https://hackathon-5x3jtwxnp-yongwoo.vercel.app |
+| **배포 링크 (Vercel)** | https://hackathon-nine-ivory.vercel.app |
 
 ## 프로젝트 개요
 
