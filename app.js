@@ -83,6 +83,11 @@ function addMember() {
   renderParticipantCheckboxes();
   updateStats();
   updateParticipationRanking();
+
+  // 회원이 2명 이상이면 매칭 카드 표시
+  if (members.length >= 2) {
+    document.getElementById('matchingCard').style.display = 'block';
+  }
 }
 
 // 회원 목록 렌더링
@@ -204,6 +209,11 @@ function handleActivitySubmit(e) {
   renderActivities();
   updateStats();
   updateParticipationRanking();
+
+  // 회원이 2명 이상이면 매칭 카드 표시
+  if (members.length >= 2) {
+    document.getElementById('matchingCard').style.display = 'block';
+  }
 }
 
 // 활동 목록 렌더링 (최신순 정렬, 검색 필터 적용)
@@ -477,6 +487,9 @@ function loadSampleData() {
   updateStats();
   updateParticipationRanking();
 
+  // 매칭 카드 표시
+  document.getElementById('matchingCard').style.display = 'block';
+
   alert('샘플 데이터가 로드되었습니다!');
 }
 
@@ -700,8 +713,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('matching1vs1Btn').addEventListener('click', match1vs1);
   document.getElementById('matching2vs2Btn').addEventListener('click', match2vs2);
 
-  // 회원이 있으면 매칭 영역 표시
-  if (members.length > 0 || activities.length > 0) {
+  // 회원이 2명 이상이면 매칭 영역 표시
+  if (members.length >= 2) {
     document.getElementById('matchingCard').style.display = 'block';
   }
 
