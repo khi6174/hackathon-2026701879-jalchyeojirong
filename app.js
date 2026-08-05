@@ -634,18 +634,8 @@ function matchActivityParticipants(activity) {
     return;
   }
 
-  // 참여자 수에 따라 선택
-  if (participants.length === 2) {
-    // 1vs1 강제
-    matchActivityWith1vs1(participants, activity);
-  } else if (participants.length === 3) {
-    alert('3명은 1vs1 매칭만 가능합니다. (2명 선택)');
-    const shuffled = [...participants].sort(() => Math.random() - 0.5);
-    matchActivityWith1vs1([shuffled[0], shuffled[1]], activity);
-  } else {
-    // 2vs2, 3vs3 등 선택
-    showMatchingOptions(participants, activity);
-  }
+  // 선택 UI 표시
+  showActivityMatchingOptions(participants, activity);
 }
 
 // 활동 참여자로 1vs1 매칭
@@ -655,20 +645,29 @@ function matchActivityWith1vs1(participants, activity) {
     return;
   }
 
-  const shuffled = [...participants].sort(() => Math.random() - 0.5);
+  // 2명만 선택
+  const selected = participants.length === 2
+    ? participants
+    : [participants[0], participants[1]];
+
+  const shuffled = [...selected].sort(() => Math.random() - 0.5);
   const team1 = shuffled[0];
   const team2 = shuffled[1];
 
+  const skillEmoji = { '상': '🔴', '중': '🟡', '하': '🟢' };
+
   displayActivityMatchResult(`
-    <div class="matching-team">
-      <div class="team-box">
-        <div class="team-title">${team1.name}</div>
-        <div class="team-member">${team1.skillLevel}</div>
-      </div>
-      <div class="vs-text">VS</div>
-      <div class="team-box">
-        <div class="team-title">${team2.name}</div>
-        <div class="team-member">${team2.skillLevel}</div>
+    <div style="text-align: center; margin: 20px 0;">
+      <div style="display: flex; justify-content: space-around; align-items: center; gap: 20px; margin: 20px 0;">
+        <div style="flex: 1; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+          <div style="font-size: 24px; font-weight: 700; color: #1a1a1a;">${team1.name}</div>
+          <div style="font-size: 16px; color: #666; margin-top: 5px;">${skillEmoji[team1.skillLevel]} ${team1.skillLevel}</div>
+        </div>
+        <div style="font-size: 28px; font-weight: 700; color: #2f7d3c;">VS</div>
+        <div style="flex: 1; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+          <div style="font-size: 24px; font-weight: 700; color: #1a1a1a;">${team2.name}</div>
+          <div style="font-size: 16px; color: #666; margin-top: 5px;">${skillEmoji[team2.skillLevel]} ${team2.skillLevel}</div>
+        </div>
       </div>
     </div>
   `, activity.title);
@@ -722,23 +721,70 @@ function matchActivityWith2vs2(participants, activity) {
   `, activity.title);
 }
 
-// 매칭 옵션 선택 대화
-function showMatchingOptions(participants, activity) {
-  const options = [];
+// 활동별 매칭 선택 UI 표시
+function showActivityMatchingOptions(participants, activity) {
+  // 임시 선택 UI를 활동 목록 위에 표시
+  const ui = document.createElement('div');
+  ui.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 1000; text-align: center; border: 2px solid #2f7d3c;';
 
-  if (participants.length >= 2) options.push('1vs1');
-  if (participants.length >= 4) options.push('2vs2');
-  if (participants.length >= 6) options.push('3vs3');
+  const title = document.createElement('h3');
+  title.textContent = activity.title;
+  title.style.cssText = 'margin: 0 0 10px 0; color: #1a1a1a;';
 
-  let choice = prompt(`${activity.title} 활동의 참여자(${participants.length}명)로 매칭을 진행합니다.\n선택: ${options.join(' / ')}`);
+  const desc = document.createElement('p');
+  desc.textContent = `참여자 ${participants.length}명으로 매칭`;
+  desc.style.cssText = 'margin: 0 0 15px 0; color: #666;';
 
-  if (choice === '1vs1') {
-    matchActivityWith1vs1(participants, activity);
-  } else if (choice === '2vs2') {
-    matchActivityWith2vs2(participants, activity);
-  } else if (choice === '3vs3') {
-    matchActivityWith3vs3(participants, activity);
+  const btnGroup = document.createElement('div');
+  btnGroup.style.cssText = 'display: flex; gap: 10px; justify-content: center;';
+
+  // 1vs1 버튼
+  if (participants.length >= 2) {
+    const btn1v1 = document.createElement('button');
+    btn1v1.textContent = '1vs1 매칭';
+    btn1v1.style.cssText = 'padding: 10px 20px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;';
+    btn1v1.onclick = () => {
+      ui.remove();
+      matchActivityWith1vs1(participants, activity);
+    };
+    btnGroup.appendChild(btn1v1);
   }
+
+  // 2vs2 버튼
+  if (participants.length >= 4) {
+    const btn2v2 = document.createElement('button');
+    btn2v2.textContent = '2vs2 매칭';
+    btn2v2.style.cssText = 'padding: 10px 20px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;';
+    btn2v2.onclick = () => {
+      ui.remove();
+      matchActivityWith2vs2(participants, activity);
+    };
+    btnGroup.appendChild(btn2v2);
+  }
+
+  // 3vs3 버튼
+  if (participants.length >= 6) {
+    const btn3v3 = document.createElement('button');
+    btn3v3.textContent = '3vs3 매칭';
+    btn3v3.style.cssText = 'padding: 10px 20px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;';
+    btn3v3.onclick = () => {
+      ui.remove();
+      matchActivityWith3vs3(participants, activity);
+    };
+    btnGroup.appendChild(btn3v3);
+  }
+
+  // 취소 버튼
+  const btnCancel = document.createElement('button');
+  btnCancel.textContent = '취소';
+  btnCancel.style.cssText = 'padding: 10px 20px; background: #e0e0e0; color: #333; border: none; border-radius: 4px; cursor: pointer;';
+  btnCancel.onclick = () => ui.remove();
+  btnGroup.appendChild(btnCancel);
+
+  ui.appendChild(title);
+  ui.appendChild(desc);
+  ui.appendChild(btnGroup);
+  document.body.appendChild(ui);
 }
 
 // 활동 참여자로 3vs3 매칭
@@ -804,8 +850,31 @@ function matchActivityWith3vs3(participants, activity) {
 
 // 활동 매칭 결과 표시
 function displayActivityMatchResult(html, activityTitle) {
-  alert(`[${activityTitle}] 매칭 결과:\n\n` + html.replace(/<[^>]*>/g, '').substring(0, 200));
-  // 더 나은 표시를 위해 별도 영역에 표시 가능
+  // 모달 UI 생성
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 2000;';
+
+  const resultBox = document.createElement('div');
+  resultBox.style.cssText = 'background: white; padding: 30px; border-radius: 8px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,0.3);';
+
+  const title = document.createElement('h2');
+  title.textContent = `${activityTitle} - 매칭 결과`;
+  title.style.cssText = 'margin: 0 0 20px 0; color: #2f7d3c; border-bottom: 2px solid #2f7d3c; padding-bottom: 10px;';
+
+  const content = document.createElement('div');
+  content.innerHTML = html;
+
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '닫기';
+  closeBtn.style.cssText = 'margin-top: 20px; padding: 10px 20px; background: #2f7d3c; color: white; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-weight: 600;';
+  closeBtn.onclick = () => modal.remove();
+
+  resultBox.appendChild(title);
+  resultBox.appendChild(content);
+  resultBox.appendChild(closeBtn);
+  modal.appendChild(resultBox);
+
+  document.body.appendChild(modal);
 }
 
 // 1vs1 매칭
