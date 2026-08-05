@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>🏸 잘쳤지롱 배드민턴 동아리 활동 기록</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- 헤더 -->
+    <header class="header">
+      <h1>🏸 잘쳤지롱 배드민턴 동아리 활동 기록</h1>
+      <button id="sampleDataBtn" class="btn-secondary">샘플 데이터 로드</button>
+    </header>
+
+    <!-- 메인 콘텐츠 (2단 레이아웃) -->
+    <div class="main-grid">
+      <!-- 좌측: 입력 섹션 -->
+      <section class="input-section">
+        <!-- 회원 명부 -->
+        <div class="card">
+          <h2>회원 명부</h2>
+          <div class="form-group">
+            <input type="text" id="memberName" placeholder="이름 입력" class="input-text">
+            <select id="memberSkill" class="select">
+              <option value="">실력 등급 선택</option>
+              <option value="상">상</option>
+              <option value="중">중</option>
+              <option value="하">하</option>
+            </select>
+            <button id="addMemberBtn" class="btn-primary">회원 추가</button>
+          </div>
+          <div id="memberError" class="error-message"></div>
+          <div id="memberList" class="member-list"></div>
+        </div>
+
+        <!-- 활동 등록 -->
+        <div class="card">
+          <h2>활동 등록</h2>
+          <form id="activityForm">
+            <div class="form-group">
+              <input type="text" id="actTitle" placeholder="활동명" class="input-text">
+              <div id="titleError" class="error-message"></div>
+            </div>
+
+            <div class="form-group">
+              <input type="date" id="actDate" class="input-text">
+              <div id="dateError" class="error-message"></div>
+            </div>
+
+            <div class="form-group">
+              <input type="text" id="actPlace" placeholder="장소" class="input-text">
+            </div>
+
+            <div class="form-group">
+              <label><strong>참여자 선택:</strong></label>
+              <div id="participantCheckboxes" class="checkbox-group"></div>
+              <div id="participantError" class="error-message"></div>
+            </div>
+
+            <div class="form-group">
+              <textarea id="actMemo" placeholder="메모 (선택사항)" class="textarea"></textarea>
+            </div>
+
+            <button type="submit" class="btn-primary">활동 등록</button>
+          </form>
+        </div>
+
+        <!-- 검색 -->
+        <div class="card">
+          <h2>검색</h2>
+          <div class="form-group">
+            <input type="text" id="searchKeyword" placeholder="활동명·장소 검색" class="input-text">
+          </div>
+        </div>
+      </section>
+
+      <!-- 우측: 조회 섹션 -->
+      <section class="view-section">
+        <!-- 통계 요약 -->
+        <div class="card">
+          <h2>통계</h2>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="stat-value" id="statActivityCount">0</div>
+              <div class="stat-label">총 활동 수</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value" id="statTotalParticipants">0</div>
+              <div class="stat-label">총 참여 연인원</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value" id="statAvgParticipants">—</div>
+              <div class="stat-label">평균 참여 인원</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 참여 랭킹 -->
+        <div class="card">
+          <h2>회원별 참여 횟수</h2>
+          <div id="participationRanking" class="ranking-list"></div>
+        </div>
+
+        <!-- 매칭 영역 (조건부) -->
+        <div class="card" id="matchingCard" style="display: none;">
+          <h2>매칭</h2>
+          <div class="form-group">
+            <button id="matching1vs1Btn" class="btn-secondary">1vs1 매칭</button>
+            <button id="matching2vs2Btn" class="btn-secondary">2vs2 매칭</button>
+          </div>
+          <div id="matchingResult" class="matching-result"></div>
+        </div>
+
+        <!-- 활동 목록 -->
+        <div class="card">
+          <h2>활동 목록</h2>
+          <div id="activityList" class="activity-list"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
