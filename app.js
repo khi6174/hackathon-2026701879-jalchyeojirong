@@ -81,6 +81,7 @@ function addMember() {
 
   renderMembers();
   renderParticipantCheckboxes();
+  renderMatchingMemberCheckboxes();
   updateStats();
   updateParticipationRanking();
 
@@ -133,6 +134,35 @@ function renderParticipantCheckboxes() {
 
     label.appendChild(checkbox);
     label.appendChild(document.createTextNode(` ${member.name}`));
+    checkboxDiv.appendChild(label);
+  });
+}
+
+// 매칭 섹션의 회원 체크박스 렌더링
+function renderMatchingMemberCheckboxes() {
+  const checkboxDiv = document.getElementById('matchingMemberCheckboxes');
+  checkboxDiv.innerHTML = '';
+
+  if (members.length === 0) {
+    checkboxDiv.innerHTML = '<div class="empty-message">먼저 회원을 등록하세요.</div>';
+    return;
+  }
+
+  members.forEach(member => {
+    const skillEmoji = {
+      '상': '🔴',
+      '중': '🟡',
+      '하': '🟢'
+    }[member.skillLevel] || '⚪';
+
+    const label = document.createElement('label');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = member.id;
+    checkbox.dataset.memberId = member.id;
+
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(` ${skillEmoji} ${member.name} (${member.skillLevel})`));
     checkboxDiv.appendChild(label);
   });
 }
@@ -291,14 +321,7 @@ function renderActivities() {
     deleteBtn.textContent = '🗑️ 삭제';
     deleteBtn.onclick = () => deleteActivity(activity.id);
 
-    const matchBtn = document.createElement('button');
-    matchBtn.className = 'btn-secondary';
-    matchBtn.textContent = '⚔️ 매칭';
-    matchBtn.style.fontSize = '12px';
-    matchBtn.onclick = () => matchActivityParticipants(activity);
-
     actions.appendChild(editBtn);
-    actions.appendChild(matchBtn);
     actions.appendChild(deleteBtn);
 
     card.appendChild(title);
@@ -490,6 +513,7 @@ function loadSampleData() {
 
   renderMembers();
   renderParticipantCheckboxes();
+  renderMatchingMemberCheckboxes();
   renderActivities();
   updateStats();
   updateParticipationRanking();
@@ -621,261 +645,7 @@ function runSelfCheck() {
   return failed === 0;
 }
 
-// ==================== 매칭 (조건부) ====================
-
-// 활동의 참여자로 매칭
-function matchActivityParticipants(activity) {
-  const participants = activity.participantIds
-    .map(id => members.find(m => m.id === id))
-    .filter(m => m); // null 제거
-
-  if (participants.length < 2) {
-    alert('매칭을 위해 참여자가 2명 이상 필요합니다.');
-    return;
-  }
-
-  // 선택 UI 표시
-  showActivityMatchingOptions(participants, activity);
-}
-
-// 활동 참여자로 1vs1 매칭
-function matchActivityWith1vs1(participants, activity) {
-  if (participants.length < 2) {
-    alert('1vs1 매칭을 위해 참여자가 2명 이상 필요합니다.');
-    return;
-  }
-
-  // 2명만 선택
-  const selected = participants.length === 2
-    ? participants
-    : [participants[0], participants[1]];
-
-  const shuffled = [...selected].sort(() => Math.random() - 0.5);
-  const team1 = shuffled[0];
-  const team2 = shuffled[1];
-
-  const skillEmoji = { '상': '🔴', '중': '🟡', '하': '🟢' };
-
-  displayActivityMatchResult(`
-    <div style="text-align: center; margin: 20px 0;">
-      <div style="display: flex; justify-content: space-around; align-items: center; gap: 20px; margin: 20px 0;">
-        <div style="flex: 1; padding: 15px; background: #f5f5f5; border-radius: 8px;">
-          <div style="font-size: 24px; font-weight: 700; color: #1a1a1a;">${team1.name}</div>
-          <div style="font-size: 16px; color: #666; margin-top: 5px;">${skillEmoji[team1.skillLevel]} ${team1.skillLevel}</div>
-        </div>
-        <div style="font-size: 28px; font-weight: 700; color: #2f7d3c;">VS</div>
-        <div style="flex: 1; padding: 15px; background: #f5f5f5; border-radius: 8px;">
-          <div style="font-size: 24px; font-weight: 700; color: #1a1a1a;">${team2.name}</div>
-          <div style="font-size: 16px; color: #666; margin-top: 5px;">${skillEmoji[team2.skillLevel]} ${team2.skillLevel}</div>
-        </div>
-      </div>
-    </div>
-  `, activity.title);
-}
-
-// 활동 참여자로 2vs2 매칭
-function matchActivityWith2vs2(participants, activity) {
-  if (participants.length < 4) {
-    alert('2vs2 매칭을 위해 참여자가 4명 이상 필요합니다.');
-    return;
-  }
-
-  const skillScore = { '상': 3, '중': 2, '하': 1 };
-  let bestCombination = null;
-  let bestDiff = Infinity;
-
-  for (let i = 0; i < 200; i++) {
-    const shuffled = [...participants].sort(() => Math.random() - 0.5);
-    const four = shuffled.slice(0, 4);
-
-    const team1 = [four[0], four[3]];
-    const team2 = [four[1], four[2]];
-
-    const team1Score = team1.reduce((sum, m) => sum + skillScore[m.skillLevel], 0);
-    const team2Score = team2.reduce((sum, m) => sum + skillScore[m.skillLevel], 0);
-    const diff = Math.abs(team1Score - team2Score);
-
-    if (diff < bestDiff) {
-      bestDiff = diff;
-      bestCombination = { team1, team2, team1Score, team2Score };
-      if (diff === 0) break;
-    }
-  }
-
-  const { team1, team2, team1Score, team2Score } = bestCombination;
-
-  displayActivityMatchResult(`
-    <div class="matching-team">
-      <div class="team-box">
-        <div class="team-title">팀 1</div>
-        ${team1.map(m => `<div class="team-member">${m.name} (${m.skillLevel})</div>`).join('')}
-        <div class="team-score">점수: ${team1Score}</div>
-      </div>
-      <div class="vs-text">VS</div>
-      <div class="team-box">
-        <div class="team-title">팀 2</div>
-        ${team2.map(m => `<div class="team-member">${m.name} (${m.skillLevel})</div>`).join('')}
-        <div class="team-score">점수: ${team2Score}</div>
-      </div>
-    </div>
-  `, activity.title);
-}
-
-// 활동별 매칭 선택 UI 표시
-function showActivityMatchingOptions(participants, activity) {
-  // 임시 선택 UI를 활동 목록 위에 표시
-  const ui = document.createElement('div');
-  ui.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 1000; text-align: center; border: 2px solid #2f7d3c;';
-
-  const title = document.createElement('h3');
-  title.textContent = activity.title;
-  title.style.cssText = 'margin: 0 0 10px 0; color: #1a1a1a;';
-
-  const desc = document.createElement('p');
-  desc.textContent = `참여자 ${participants.length}명으로 매칭`;
-  desc.style.cssText = 'margin: 0 0 15px 0; color: #666;';
-
-  const btnGroup = document.createElement('div');
-  btnGroup.style.cssText = 'display: flex; gap: 10px; justify-content: center;';
-
-  // 1vs1 버튼
-  if (participants.length >= 2) {
-    const btn1v1 = document.createElement('button');
-    btn1v1.textContent = '1vs1 매칭';
-    btn1v1.style.cssText = 'padding: 10px 20px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;';
-    btn1v1.onclick = () => {
-      ui.remove();
-      matchActivityWith1vs1(participants, activity);
-    };
-    btnGroup.appendChild(btn1v1);
-  }
-
-  // 2vs2 버튼
-  if (participants.length >= 4) {
-    const btn2v2 = document.createElement('button');
-    btn2v2.textContent = '2vs2 매칭';
-    btn2v2.style.cssText = 'padding: 10px 20px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;';
-    btn2v2.onclick = () => {
-      ui.remove();
-      matchActivityWith2vs2(participants, activity);
-    };
-    btnGroup.appendChild(btn2v2);
-  }
-
-  // 3vs3 버튼
-  if (participants.length >= 6) {
-    const btn3v3 = document.createElement('button');
-    btn3v3.textContent = '3vs3 매칭';
-    btn3v3.style.cssText = 'padding: 10px 20px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;';
-    btn3v3.onclick = () => {
-      ui.remove();
-      matchActivityWith3vs3(participants, activity);
-    };
-    btnGroup.appendChild(btn3v3);
-  }
-
-  // 취소 버튼
-  const btnCancel = document.createElement('button');
-  btnCancel.textContent = '취소';
-  btnCancel.style.cssText = 'padding: 10px 20px; background: #e0e0e0; color: #333; border: none; border-radius: 4px; cursor: pointer;';
-  btnCancel.onclick = () => ui.remove();
-  btnGroup.appendChild(btnCancel);
-
-  ui.appendChild(title);
-  ui.appendChild(desc);
-  ui.appendChild(btnGroup);
-  document.body.appendChild(ui);
-}
-
-// 활동 참여자로 3vs3 매칭
-function matchActivityWith3vs3(participants, activity) {
-  if (participants.length < 6) {
-    alert('3vs3 매칭을 위해 참여자가 6명 이상 필요합니다.');
-    return;
-  }
-
-  const skillScore = { '상': 3, '중': 2, '하': 1 };
-  let bestCombination = null;
-  let bestDiff = Infinity;
-
-  for (let i = 0; i < 200; i++) {
-    const shuffled = [...participants].sort(() => Math.random() - 0.5);
-    const six = shuffled.slice(0, 6);
-
-    // 팀1: 1번, 4번 / 팀2: 2번, 5번 / 팀3: 3번, 6번
-    // 더 나은 균형을 위해: 팀1: 1,6 / 팀2: 2,5 / 팀3: 3,4
-    const team1 = [six[0], six[5]];
-    const team2 = [six[1], six[4]];
-    const team3 = [six[2], six[3]];
-
-    const team1Score = team1.reduce((sum, m) => sum + skillScore[m.skillLevel], 0);
-    const team2Score = team2.reduce((sum, m) => sum + skillScore[m.skillLevel], 0);
-    const team3Score = team3.reduce((sum, m) => sum + skillScore[m.skillLevel], 0);
-
-    const maxDiff = Math.max(
-      Math.abs(team1Score - team2Score),
-      Math.abs(team2Score - team3Score),
-      Math.abs(team1Score - team3Score)
-    );
-
-    if (maxDiff < bestDiff) {
-      bestDiff = maxDiff;
-      bestCombination = { team1, team2, team3, team1Score, team2Score, team3Score };
-      if (maxDiff === 0) break;
-    }
-  }
-
-  const { team1, team2, team3, team1Score, team2Score, team3Score } = bestCombination;
-
-  displayActivityMatchResult(`
-    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
-      <div class="team-box">
-        <div class="team-title">팀 1</div>
-        ${team1.map(m => `<div class="team-member">${m.name} (${m.skillLevel})</div>`).join('')}
-        <div class="team-score">점수: ${team1Score}</div>
-      </div>
-      <div class="team-box">
-        <div class="team-title">팀 2</div>
-        ${team2.map(m => `<div class="team-member">${m.name} (${m.skillLevel})</div>`).join('')}
-        <div class="team-score">점수: ${team2Score}</div>
-      </div>
-      <div class="team-box">
-        <div class="team-title">팀 3</div>
-        ${team3.map(m => `<div class="team-member">${m.name} (${m.skillLevel})</div>`).join('')}
-        <div class="team-score">점수: ${team3Score}</div>
-      </div>
-    </div>
-  `, activity.title);
-}
-
-// 활동 매칭 결과 표시
-function displayActivityMatchResult(html, activityTitle) {
-  // 모달 UI 생성
-  const modal = document.createElement('div');
-  modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 2000;';
-
-  const resultBox = document.createElement('div');
-  resultBox.style.cssText = 'background: white; padding: 30px; border-radius: 8px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,0.3);';
-
-  const title = document.createElement('h2');
-  title.textContent = `${activityTitle} - 매칭 결과`;
-  title.style.cssText = 'margin: 0 0 20px 0; color: #2f7d3c; border-bottom: 2px solid #2f7d3c; padding-bottom: 10px;';
-
-  const content = document.createElement('div');
-  content.innerHTML = html;
-
-  const closeBtn = document.createElement('button');
-  closeBtn.textContent = '닫기';
-  closeBtn.style.cssText = 'margin-top: 20px; padding: 10px 20px; background: #2f7d3c; color: white; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-weight: 600;';
-  closeBtn.onclick = () => modal.remove();
-
-  resultBox.appendChild(title);
-  resultBox.appendChild(content);
-  resultBox.appendChild(closeBtn);
-  modal.appendChild(resultBox);
-
-  document.body.appendChild(modal);
-}
+// ==================== 매칭 ====================
 
 // 1vs1 매칭
 function match1vs1() {
@@ -958,11 +728,171 @@ function displayMatchResult(html) {
   resultDiv.innerHTML = html;
 }
 
+// 선택된 회원으로 매칭 실행
+function executeMatching() {
+  const checkboxes = document.querySelectorAll('#matchingMemberCheckboxes input[type="checkbox"]:checked');
+  const selectedMemberIds = Array.from(checkboxes).map(cb => cb.value);
+  const selectedMembers = selectedMemberIds
+    .map(id => members.find(m => m.id === id))
+    .filter(m => m);
+
+  if (selectedMembers.length < 2) {
+    alert('매칭을 위해 회원을 2명 이상 선택하세요.');
+    return;
+  }
+
+  const count = selectedMembers.length;
+
+  if (count === 2) {
+    // 1vs1 매칭
+    matchSelectedWith1vs1(selectedMembers);
+  } else if (count === 4) {
+    // 2vs2 매칭
+    matchSelectedWith2vs2(selectedMembers);
+  } else if (count === 6) {
+    // 3vs3 매칭
+    matchSelectedWith3vs3(selectedMembers);
+  } else {
+    alert(`현재는 2명, 4명, 6명 선택만 지원합니다. (선택된 인원: ${count}명)`);
+  }
+}
+
+// 선택된 회원으로 1vs1 매칭
+function matchSelectedWith1vs1(selectedMembers) {
+  if (selectedMembers.length < 2) {
+    alert('1vs1 매칭을 위해 회원이 2명 이상 필요합니다.');
+    return;
+  }
+
+  const shuffled = [...selectedMembers].sort(() => Math.random() - 0.5);
+  const team1 = shuffled[0];
+  const team2 = shuffled[1];
+
+  const skillEmoji = { '상': '🔴', '중': '🟡', '하': '🟢' };
+
+  displayMatchResult(`
+    <div style="text-align: center; margin: 20px 0;">
+      <div style="display: flex; justify-content: space-around; align-items: center; gap: 20px; margin: 20px 0;">
+        <div style="flex: 1; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+          <div style="font-size: 24px; font-weight: 700; color: #1a1a1a;">${team1.name}</div>
+          <div style="font-size: 16px; color: #666; margin-top: 5px;">${skillEmoji[team1.skillLevel]} ${team1.skillLevel}</div>
+        </div>
+        <div style="font-size: 28px; font-weight: 700; color: #2f7d3c;">VS</div>
+        <div style="flex: 1; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+          <div style="font-size: 24px; font-weight: 700; color: #1a1a1a;">${team2.name}</div>
+          <div style="font-size: 16px; color: #666; margin-top: 5px;">${skillEmoji[team2.skillLevel]} ${team2.skillLevel}</div>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+// 선택된 회원으로 2vs2 매칭
+function matchSelectedWith2vs2(selectedMembers) {
+  if (selectedMembers.length < 4) {
+    alert('2vs2 매칭을 위해 회원이 4명 이상 필요합니다.');
+    return;
+  }
+
+  const skillScore = { '상': 3, '중': 2, '하': 1 };
+  let bestCombination = null;
+  let bestDiff = Infinity;
+
+  // 최대 200회 반복해서 최적의 조합 찾기
+  for (let i = 0; i < 200; i++) {
+    const shuffled = [...selectedMembers].sort(() => Math.random() - 0.5);
+    const four = shuffled.slice(0, 4);
+
+    const team1 = [four[0], four[3]];
+    const team2 = [four[1], four[2]];
+
+    const team1Score = team1.reduce((sum, m) => sum + skillScore[m.skillLevel], 0);
+    const team2Score = team2.reduce((sum, m) => sum + skillScore[m.skillLevel], 0);
+    const diff = Math.abs(team1Score - team2Score);
+
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestCombination = { team1, team2, team1Score, team2Score };
+      if (diff === 0) break;
+    }
+  }
+
+  const { team1, team2, team1Score, team2Score } = bestCombination;
+  const skillEmoji = { '상': '🔴', '중': '🟡', '하': '🟢' };
+
+  displayMatchResult(`
+    <div class="matching-team">
+      <div class="team-box">
+        <div class="team-title">팀 1</div>
+        ${team1.map(m => `<div class="team-member">${skillEmoji[m.skillLevel]} ${m.name} (${m.skillLevel})</div>`).join('')}
+        <div class="team-score">점수: ${team1Score}</div>
+      </div>
+      <div class="vs-text">VS</div>
+      <div class="team-box">
+        <div class="team-title">팀 2</div>
+        ${team2.map(m => `<div class="team-member">${skillEmoji[m.skillLevel]} ${m.name} (${m.skillLevel})</div>`).join('')}
+        <div class="team-score">점수: ${team2Score}</div>
+      </div>
+    </div>
+  `);
+}
+
+// 선택된 회원으로 3vs3 매칭
+function matchSelectedWith3vs3(selectedMembers) {
+  if (selectedMembers.length < 6) {
+    alert('3vs3 매칭을 위해 회원이 6명 이상 필요합니다.');
+    return;
+  }
+
+  const skillScore = { '상': 3, '중': 2, '하': 1 };
+  let bestCombination = null;
+  let bestDiff = Infinity;
+
+  // 최대 200회 반복해서 최적의 조합 찾기
+  for (let i = 0; i < 200; i++) {
+    const shuffled = [...selectedMembers].sort(() => Math.random() - 0.5);
+    const six = shuffled.slice(0, 6);
+
+    const team1 = [six[0], six[3], six[4]];
+    const team2 = [six[1], six[2], six[5]];
+
+    const team1Score = team1.reduce((sum, m) => sum + skillScore[m.skillLevel], 0);
+    const team2Score = team2.reduce((sum, m) => sum + skillScore[m.skillLevel], 0);
+    const diff = Math.abs(team1Score - team2Score);
+
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestCombination = { team1, team2, team1Score, team2Score };
+      if (diff === 0) break;
+    }
+  }
+
+  const { team1, team2, team1Score, team2Score } = bestCombination;
+  const skillEmoji = { '상': '🔴', '중': '🟡', '하': '🟢' };
+
+  displayMatchResult(`
+    <div class="matching-team">
+      <div class="team-box">
+        <div class="team-title">팀 1</div>
+        ${team1.map(m => `<div class="team-member">${skillEmoji[m.skillLevel]} ${m.name} (${m.skillLevel})</div>`).join('')}
+        <div class="team-score">점수: ${team1Score}</div>
+      </div>
+      <div class="vs-text">VS</div>
+      <div class="team-box">
+        <div class="team-title">팀 2</div>
+        ${team2.map(m => `<div class="team-member">${skillEmoji[m.skillLevel]} ${m.name} (${m.skillLevel})</div>`).join('')}
+        <div class="team-score">점수: ${team2Score}</div>
+      </div>
+    </div>
+  `);
+}
+
 // ==================== 초기화 ====================
 
 document.addEventListener('DOMContentLoaded', () => {
   renderMembers();
   renderParticipantCheckboxes();
+  renderMatchingMemberCheckboxes();
   renderActivities();
   updateStats();
   updateParticipationRanking();
@@ -971,8 +901,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('addMemberBtn').addEventListener('click', addMember);
   document.getElementById('activityForm').addEventListener('submit', handleActivitySubmit);
   document.getElementById('sampleDataBtn').addEventListener('click', loadSampleData);
-  document.getElementById('matching1vs1Btn').addEventListener('click', match1vs1);
-  document.getElementById('matching2vs2Btn').addEventListener('click', match2vs2);
+  document.getElementById('matchingExecuteBtn').addEventListener('click', executeMatching);
 
   // 회원이 2명 이상이면 매칭 영역 표시
   if (members.length >= 2) {

@@ -107,8 +107,11 @@
         <div class="card" id="matchingCard" style="display: none;">
           <h2>매칭</h2>
           <div class="form-group">
-            <button id="matching1vs1Btn" class="btn-secondary">1vs1 매칭</button>
-            <button id="matching2vs2Btn" class="btn-secondary">2vs2 매칭</button>
+            <label><strong>매칭할 회원 선택:</strong></label>
+            <div id="matchingMemberCheckboxes" class="checkbox-group"></div>
+          </div>
+          <div class="form-group">
+            <button id="matchingExecuteBtn" class="btn-primary">매칭 실행</button>
           </div>
           <div id="matchingResult" class="matching-result"></div>
         </div>
