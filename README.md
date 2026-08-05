@@ -65,8 +65,8 @@
 
 1. **저장소 클론**
    ```bash
-   git clone https://github.com/sung2ne/20260805.git
-   cd hackathon
+   git clone https://github.com/khi6174/hackathon-2026701879-jalchyeojirong.git
+   cd hackathon-2026701879-jalchyeojirong
    ```
 
 2. **`index.html` 브라우저에서 열기**
