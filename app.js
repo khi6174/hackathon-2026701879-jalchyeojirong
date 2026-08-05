@@ -742,19 +742,71 @@ function executeMatching() {
   }
 
   const count = selectedMembers.length;
+  showMatchingTypeSelector(selectedMembers, count);
+}
 
-  if (count === 2) {
-    // 1vs1 매칭
-    matchSelectedWith1vs1(selectedMembers);
-  } else if (count === 4) {
-    // 2vs2 매칭
-    matchSelectedWith2vs2(selectedMembers);
-  } else if (count === 6) {
-    // 3vs3 매칭
-    matchSelectedWith3vs3(selectedMembers);
-  } else {
-    alert(`현재는 2명, 4명, 6명 선택만 지원합니다. (선택된 인원: ${count}명)`);
+// 매칭 유형 선택 모달
+function showMatchingTypeSelector(selectedMembers, count) {
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 2000;';
+
+  const box = document.createElement('div');
+  box.style.cssText = 'background: white; padding: 30px; border-radius: 8px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.3);';
+
+  const title = document.createElement('h3');
+  title.textContent = `${count}명으로 매칭 방식 선택`;
+  title.style.cssText = 'margin: 0 0 20px 0; color: #1a1a1a;';
+
+  const btnGroup = document.createElement('div');
+  btnGroup.style.cssText = 'display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;';
+
+  // 1vs1 버튼
+  if (count >= 2) {
+    const btn1v1 = document.createElement('button');
+    btn1v1.textContent = '1vs1 매칭';
+    btn1v1.style.cssText = 'padding: 10px 20px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;';
+    btn1v1.onclick = () => {
+      modal.remove();
+      matchSelectedWith1vs1(selectedMembers);
+    };
+    btnGroup.appendChild(btn1v1);
   }
+
+  // 2vs2 버튼
+  if (count >= 4) {
+    const btn2v2 = document.createElement('button');
+    btn2v2.textContent = '2vs2 매칭';
+    btn2v2.style.cssText = 'padding: 10px 20px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;';
+    btn2v2.onclick = () => {
+      modal.remove();
+      matchSelectedWith2vs2(selectedMembers);
+    };
+    btnGroup.appendChild(btn2v2);
+  }
+
+  // 3vs3 버튼
+  if (count >= 6) {
+    const btn3v3 = document.createElement('button');
+    btn3v3.textContent = '3vs3 매칭';
+    btn3v3.style.cssText = 'padding: 10px 20px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;';
+    btn3v3.onclick = () => {
+      modal.remove();
+      matchSelectedWith3vs3(selectedMembers);
+    };
+    btnGroup.appendChild(btn3v3);
+  }
+
+  // 취소 버튼
+  const btnCancel = document.createElement('button');
+  btnCancel.textContent = '취소';
+  btnCancel.style.cssText = 'padding: 10px 20px; background: #e0e0e0; color: #333; border: none; border-radius: 4px; cursor: pointer;';
+  btnCancel.onclick = () => modal.remove();
+  btnGroup.appendChild(btnCancel);
+
+  box.appendChild(title);
+  box.appendChild(btnGroup);
+  modal.appendChild(box);
+  document.body.appendChild(modal);
 }
 
 // 선택된 회원으로 1vs1 매칭
