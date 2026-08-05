@@ -35,6 +35,7 @@ function isFutureDate(dateString) {
 
 let members = loadFromStorage('members', []);
 let activities = loadFromStorage('activities', []);
+let matchHistory = loadFromStorage('matchHistory', []);
 
 // 회원 추가
 function addMember() {
@@ -728,6 +729,23 @@ function displayMatchResult(html) {
   resultDiv.innerHTML = html;
 }
 
+// 매칭 기록 저장
+function saveMatchHistory(matchType, team1, team2, team1Score, team2Score) {
+  const record = {
+    id: generateId(),
+    date: getTodayString(),
+    matchType: matchType,
+    team1: team1.map(m => ({ id: m.id, name: m.name, skillLevel: m.skillLevel })),
+    team2: team2.map(m => ({ id: m.id, name: m.name, skillLevel: m.skillLevel })),
+    team1Score: team1Score,
+    team2Score: team2Score,
+    createdAt: Date.now()
+  };
+
+  matchHistory.push(record);
+  saveToStorage('matchHistory', matchHistory);
+}
+
 // 선택된 회원으로 매칭 실행
 function executeMatching() {
   const checkboxes = document.querySelectorAll('#matchingMemberCheckboxes input[type="checkbox"]:checked');
@@ -837,6 +855,9 @@ function matchSelectedWith1vs1(selectedMembers) {
       </div>
     </div>
   `);
+
+  // 매칭 기록 저장
+  saveMatchHistory('1vs1', [team1], [team2], 0, 0);
 }
 
 // 선택된 회원으로 2vs2 매칭
@@ -887,6 +908,9 @@ function matchSelectedWith2vs2(selectedMembers) {
       </div>
     </div>
   `);
+
+  // 매칭 기록 저장
+  saveMatchHistory('2vs2', team1, team2, team1Score, team2Score);
 }
 
 // 선택된 회원으로 3vs3 매칭
@@ -937,6 +961,9 @@ function matchSelectedWith3vs3(selectedMembers) {
       </div>
     </div>
   `);
+
+  // 매칭 기록 저장 (3vs3은 2팀만 저장)
+  saveMatchHistory('3vs3', team1, team2, team1Score, team2Score);
 }
 
 // ==================== 데이터 관리 ====================
