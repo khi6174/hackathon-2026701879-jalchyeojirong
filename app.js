@@ -887,6 +887,103 @@ function matchSelectedWith3vs3(selectedMembers) {
   `);
 }
 
+// ==================== 데이터 관리 ====================
+
+// 데이터 내보내기 (JSON 다운로드)
+function exportData() {
+  const data = {
+    members: loadFromStorage('members', []),
+    activities: loadFromStorage('activities', []),
+    matchHistory: loadFromStorage('matchHistory', []),
+    exportDate: new Date().toISOString()
+  };
+
+  const dataStr = JSON.stringify(data, null, 2);
+  const blob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+
+  const today = getTodayString();
+  link.download = `badminton_data_${today.replace(/-/g, '')}.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  showDataMessage('✅ 데이터가 내보내졌습니다!', false);
+}
+
+// 파일 선택 후 처리
+function handleFileImport(file) {
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+
+      // 데이터 검증
+      if (!data.members || !data.activities) {
+        throw new Error('잘못된 파일 형식입니다.');
+      }
+
+      // 회원 데이터 병합 (ID 기준)
+      let existingMembers = loadFromStorage('members', []);
+      const memberMap = new Map(existingMembers.map(m => [m.id, m]));
+      data.members.forEach(m => memberMap.set(m.id, m));
+      const mergedMembers = Array.from(memberMap.values());
+
+      // 활동 데이터 병합 (ID 기준)
+      let existingActivities = loadFromStorage('activities', []);
+      const activityMap = new Map(existingActivities.map(a => [a.id, a]));
+      data.activities.forEach(a => activityMap.set(a.id, a));
+      const mergedActivities = Array.from(activityMap.values());
+
+      // 매칭 히스토리 병합
+      let existingHistory = loadFromStorage('matchHistory', []);
+      const historyMap = new Map(existingHistory.map(h => [h.id, h]));
+      if (data.matchHistory) {
+        data.matchHistory.forEach(h => historyMap.set(h.id, h));
+      }
+      const mergedHistory = Array.from(historyMap.values());
+
+      // 저장
+      saveToStorage('members', mergedMembers);
+      saveToStorage('activities', mergedActivities);
+      saveToStorage('matchHistory', mergedHistory);
+
+      // 전역 변수 업데이트
+      members = mergedMembers;
+      activities = mergedActivities;
+
+      // UI 갱신
+      renderMembers();
+      renderParticipantCheckboxes();
+      renderMatchingMemberCheckboxes();
+      renderActivities();
+      updateStats();
+      updateParticipationRanking();
+
+      showDataMessage(`✅ 데이터가 가져와졌습니다! (회원: ${mergedMembers.length}명, 활동: ${mergedActivities.length}건)`, false);
+    } catch (error) {
+      showDataMessage(`❌ 오류: ${error.message}`, true);
+    }
+  };
+
+  reader.readAsText(file);
+}
+
+// 데이터 메시지 표시
+function showDataMessage(message, isError) {
+  const msgDiv = document.getElementById('dataMessage');
+  msgDiv.textContent = message;
+  msgDiv.style.color = isError ? '#d32f2f' : '#388e3c';
+  setTimeout(() => {
+    msgDiv.textContent = '';
+  }, 4000);
+}
+
 // ==================== 초기화 ====================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -902,6 +999,16 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('activityForm').addEventListener('submit', handleActivitySubmit);
   document.getElementById('sampleDataBtn').addEventListener('click', loadSampleData);
   document.getElementById('matchingExecuteBtn').addEventListener('click', executeMatching);
+  document.getElementById('exportDataBtn').addEventListener('click', exportData);
+  document.getElementById('importDataBtn').addEventListener('click', () => {
+    document.getElementById('importFileInput').click();
+  });
+  document.getElementById('importFileInput').addEventListener('change', (e) => {
+    if (e.target.files[0]) {
+      handleFileImport(e.target.files[0]);
+      e.target.value = ''; // 파일 입력 초기화
+    }
+  });
 
   // 회원이 2명 이상이면 매칭 영역 표시
   if (members.length >= 2) {

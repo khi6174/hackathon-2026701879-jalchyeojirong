@@ -103,6 +103,17 @@
           <div id="participationRanking" class="ranking-list"></div>
         </div>
 
+        <!-- 데이터 관리 -->
+        <div class="card">
+          <h2>데이터 관리</h2>
+          <div class="form-group">
+            <button id="exportDataBtn" class="btn-secondary">📥 데이터 내보내기</button>
+            <button id="importDataBtn" class="btn-secondary">📤 데이터 가져오기</button>
+            <input type="file" id="importFileInput" accept=".json" style="display: none;">
+          </div>
+          <div id="dataMessage" class="error-message"></div>
+        </div>
+
         <!-- 매칭 영역 (조건부) -->
         <div class="card" id="matchingCard" style="display: none;">
           <h2>매칭</h2>
