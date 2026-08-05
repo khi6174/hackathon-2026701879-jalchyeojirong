@@ -480,6 +480,210 @@ function loadSampleData() {
   alert('샘플 데이터가 로드되었습니다!');
 }
 
+// ==================== 자체검증 ====================
+
+function runSelfCheck() {
+  console.log('=== 자체검증 시작 ===');
+  let passed = 0;
+  let failed = 0;
+
+  // 테스트 1: 오늘 날짜는 미래가 아니어야 함
+  const today = getTodayString();
+  const isNotFuture = !isFutureDate(today);
+  console.assert(isNotFuture, '✗ 오늘 날짜가 미래로 판정됨');
+  if (isNotFuture) {
+    console.log('✓ 테스트 1 통과: 오늘 날짜 정상 (미래 아님)');
+    passed++;
+  } else {
+    failed++;
+  }
+
+  // 테스트 2: 어제 날짜는 미래가 아니어야 함
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yestString = yesterday.getFullYear() + '-' + String(yesterday.getMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getDate()).padStart(2, '0');
+  const isYestNotFuture = !isFutureDate(yestString);
+  console.assert(isYestNotFuture, '✗ 어제 날짜가 미래로 판정됨');
+  if (isYestNotFuture) {
+    console.log('✓ 테스트 2 통과: 어제 날짜 정상 (미래 아님)');
+    passed++;
+  } else {
+    failed++;
+  }
+
+  // 테스트 3: 내일 날짜는 미래여야 함
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomString = tomorrow.getFullYear() + '-' + String(tomorrow.getMonth() + 1).padStart(2, '0') + '-' + String(tomorrow.getDate()).padStart(2, '0');
+  const isTomFuture = isFutureDate(tomString);
+  console.assert(isTomFuture, '✗ 내일 날짜가 미래로 판정되지 않음');
+  if (isTomFuture) {
+    console.log('✓ 테스트 3 통과: 내일 날짜 정상 (미래)');
+    passed++;
+  } else {
+    failed++;
+  }
+
+  // 테스트 4: 활동 0건일 때 통계에 NaN 없어야 함
+  const tempActivities = activities;
+  activities = [];
+  updateStats();
+  const avgText = document.getElementById('statAvgParticipants').textContent;
+  const noNaN = avgText !== 'NaN' && avgText !== '—';
+  console.assert(noNaN || avgText === '—', '✗ 활동 0건일 때 평균이 NaN 노출됨');
+  if (noNaN || avgText === '—') {
+    console.log(`✓ 테스트 4 통과: 평균 표시 정상 (${avgText})`);
+    passed++;
+  } else {
+    failed++;
+  }
+  activities = tempActivities;
+  updateStats();
+
+  // 테스트 5: 샘플 데이터 로드 시 회원별 참여 횟수 정확성
+  loadSampleData();
+  const expectedRanking = {
+    'm1': 3, // a1, a4, a4 실제로는 a1, a2, a4 = 3회
+    'm2': 3, // a2, a3, a4
+    'm3': 4, // a1, a2, a4, a5
+    'm4': 3, // a2, a3, a4
+    'm5': 3, // a1, a4, a5
+    'm6': 2  // a4, a3
+  };
+
+  let rankingPass = true;
+  for (const [memberId, expectedCount] of Object.entries(expectedRanking)) {
+    const actualCount = activities.filter(a => a.participantIds.includes(memberId)).length;
+    if (actualCount !== expectedCount) {
+      console.warn(`✗ 회원 ${memberId}: 예상 ${expectedCount}회, 실제 ${actualCount}회`);
+      rankingPass = false;
+    }
+  }
+
+  console.assert(rankingPass, '✗ 참여 횟수 계산 오류');
+  if (rankingPass) {
+    console.log('✓ 테스트 5 통과: 회원별 참여 횟수 정확성 확인');
+    passed++;
+  } else {
+    failed++;
+  }
+
+  // 테스트 6: 총 참여 연인원 정확성
+  const totalParticipants = activities.reduce((sum, act) => sum + act.participantIds.length, 0);
+  const displayedTotal = parseInt(document.getElementById('statTotalParticipants').textContent);
+  const totalPass = totalParticipants === displayedTotal;
+  console.assert(totalPass, `✗ 총 참여 연인원: 예상 ${totalParticipants}, 실제 ${displayedTotal}`);
+  if (totalPass) {
+    console.log(`✓ 테스트 6 통과: 총 참여 연인원 ${totalParticipants}명 정확`);
+    passed++;
+  } else {
+    failed++;
+  }
+
+  // 테스트 7: 평균 계산 정확성
+  const count = activities.length;
+  const expectedAvg = (totalParticipants / count).toFixed(1);
+  const displayedAvg = document.getElementById('statAvgParticipants').textContent;
+  const avgPass = displayedAvg === expectedAvg;
+  console.assert(avgPass, `✗ 평균 참여 인원: 예상 ${expectedAvg}, 실제 ${displayedAvg}`);
+  if (avgPass) {
+    console.log(`✓ 테스트 7 통과: 평균 참여 인원 ${expectedAvg}명 정확`);
+    passed++;
+  } else {
+    failed++;
+  }
+
+  console.log(`\n=== 자체검증 완료 ===`);
+  console.log(`✓ 통과: ${passed}개`);
+  console.log(`✗ 실패: ${failed}개`);
+  console.log(`결과: ${failed === 0 ? '모든 테스트 통과 ✓' : `${failed}개 실패 ✗`}`);
+
+  return failed === 0;
+}
+
+// ==================== 매칭 (조건부) ====================
+
+// 1vs1 매칭
+function match1vs1() {
+  if (members.length < 2) {
+    alert('1vs1 매칭을 위해 회원이 2명 이상 필요합니다.');
+    return;
+  }
+
+  const shuffled = [...members].sort(() => Math.random() - 0.5);
+  const team1 = shuffled[0];
+  const team2 = shuffled[1];
+
+  displayMatchResult(`
+    <div class="matching-team">
+      <div class="team-box">
+        <div class="team-title">${team1.name}</div>
+        <div class="team-member">${team1.skillLevel}</div>
+      </div>
+      <div class="vs-text">VS</div>
+      <div class="team-box">
+        <div class="team-title">${team2.name}</div>
+        <div class="team-member">${team2.skillLevel}</div>
+      </div>
+    </div>
+  `);
+}
+
+// 2vs2 매칭 (실력 균형 고려)
+function match2vs2() {
+  if (members.length < 4) {
+    alert('2vs2 매칭을 위해 회원이 4명 이상 필요합니다.');
+    return;
+  }
+
+  const skillScore = { '상': 3, '중': 2, '하': 1 };
+  let bestCombination = null;
+  let bestDiff = Infinity;
+
+  // 최대 200회 반복해서 최적의 조합 찾기
+  for (let i = 0; i < 200; i++) {
+    const shuffled = [...members].sort(() => Math.random() - 0.5);
+    const four = shuffled.slice(0, 4);
+
+    const team1 = [four[0], four[3]];
+    const team2 = [four[1], four[2]];
+
+    const team1Score = team1.reduce((sum, m) => sum + skillScore[m.skillLevel], 0);
+    const team2Score = team2.reduce((sum, m) => sum + skillScore[m.skillLevel], 0);
+    const diff = Math.abs(team1Score - team2Score);
+
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestCombination = { team1, team2, team1Score, team2Score };
+      if (diff === 0) break; // 완벽한 조합 찾으면 즉시 종료
+    }
+  }
+
+  const { team1, team2, team1Score, team2Score } = bestCombination;
+
+  displayMatchResult(`
+    <div class="matching-team">
+      <div class="team-box">
+        <div class="team-title">팀 1</div>
+        ${team1.map(m => `<div class="team-member">${m.name} (${m.skillLevel})</div>`).join('')}
+        <div class="team-score">점수: ${team1Score}</div>
+      </div>
+      <div class="vs-text">VS</div>
+      <div class="team-box">
+        <div class="team-title">팀 2</div>
+        ${team2.map(m => `<div class="team-member">${m.name} (${m.skillLevel})</div>`).join('')}
+        <div class="team-score">점수: ${team2Score}</div>
+      </div>
+    </div>
+  `);
+}
+
+// 매칭 결과 표시
+function displayMatchResult(html) {
+  const resultDiv = document.getElementById('matchingResult');
+  resultDiv.innerHTML = html;
+}
+
 // ==================== 초기화 ====================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -493,6 +697,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('addMemberBtn').addEventListener('click', addMember);
   document.getElementById('activityForm').addEventListener('submit', handleActivitySubmit);
   document.getElementById('sampleDataBtn').addEventListener('click', loadSampleData);
+  document.getElementById('matching1vs1Btn').addEventListener('click', match1vs1);
+  document.getElementById('matching2vs2Btn').addEventListener('click', match2vs2);
+
+  // 회원이 있으면 매칭 영역 표시
+  if (members.length > 0 || activities.length > 0) {
+    document.getElementById('matchingCard').style.display = 'block';
+  }
 
   // 엔터 키로 회원 추가
   document.getElementById('memberName').addEventListener('keypress', (e) => {
